@@ -9,7 +9,8 @@
 namespace TGA {
 
     struct TGAColor {
-        int b, g, r, a;
+        int b = 0, g = 0, r = 0, a = 255;
+        constexpr TGAColor() : b(0), g(0), r(0), a(255) {};
         constexpr TGAColor(int b, int g, int r, int a)
             : b(b), g(g), r(r), a(a) {};
     };
@@ -18,7 +19,7 @@ namespace TGA {
     struct TGAHeader {
         char  id_length            = 0;
         char  color_map_type       = 0;
-        char  image_type           = 2;
+        char  image_type;
         short first_entry_index    = 0;
         short color_map_length     = 0;
         char  color_map_entry_size = 0;
@@ -27,7 +28,7 @@ namespace TGA {
         short width;
         short height;
         char  pixel_depth;
-        char  image_descriptor     = 0;
+        char  image_descriptor;
     };
     #pragma pack(pop)
 
@@ -45,11 +46,12 @@ namespace TGA {
             bytes_per_pixel = static_cast<int>(format);
             total_size = width * height * bytes_per_pixel;
             data = new uint8_t[total_size]();
-            std::memset(data, 0, total_size);
 
             header.width = width;
             header.height = height;
             header.pixel_depth = bytes_per_pixel * 8;
+            header.image_type = (format == TGAPixelFormat::GRAYSCALE) ? 3 : 2;
+            header.image_descriptor = (format == TGAPixelFormat::RGBA) ? 8 : 0;
         }
 
         ~TGAImage() {
@@ -63,7 +65,7 @@ namespace TGA {
 
             switch (format) {
                 case TGAPixelFormat::GRAYSCALE:
-                    data[index] = color.b;
+                    data[index] = static_cast<uint8_t>((color.r + color.g + color.b) / 3);
                     break;
                 case TGAPixelFormat::RGB:
                     data[index]   = color.b;
