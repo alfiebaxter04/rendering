@@ -56,7 +56,7 @@ namespace TGA {
             delete[] data;
         }
 
-        void set(int x, int y, TGAColor color) {
+        inline void set(int x, int y, TGAColor color) {
             if (x < 0 || y < 0 || x >= width || y >= height) return;
 
             int index = (x + y * width) * bytes_per_pixel;

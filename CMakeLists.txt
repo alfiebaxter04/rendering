@@ -10,6 +10,8 @@ set(SOURCES
     tgaimage.h
 )
 
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
+
 add_executable(tinyrenderer ${SOURCES})
 
 target_include_directories(tinyrenderer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

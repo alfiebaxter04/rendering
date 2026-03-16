@@ -12,22 +12,36 @@ constexpr TGAColor blue   = {255, 128,  64, 255};
 constexpr TGAColor yellow = {  0, 200, 255, 255};
 
 void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color) {
-    bool steep = std::abs(x1 - x2) < std::abs(y1 - y2);
+    bool steep = std::abs(y2 - y1) > std::abs(x2 - x1);
+    if (steep) { std::swap(x1, y1); std::swap(x2, y2); }
+    if (x1 > x2) { std::swap(x1, x2); std::swap(y1, y2); }
+
+    int dx = x2 - x1;
+    int dy = std::abs(y2 - y1);
+    int error = 0;
+    int derror2 = dy * 2;
+    int dx2 = dx * 2;
+    int y = y1;
+    int y_step = (y2 > y1 ? 1 : -1);
+
     if (steep) {
-        std::swap(x1, y1);
-        std::swap(x2, y2);
-    }
-
-    if (x1 > x2) {
-        std::swap(x1, x2);
-        std::swap(y1, y2);
-    }
-
-    for (int x = x1; x <= x2; x++) {
-        float t = (x - x1) / static_cast<float>(x2-x1);
-        int y = std::round(y1 + (y2-y1)*t);
-        if (steep) image.set(y, x, color);
-        else       image.set(x, y, color);
+        for (int x = x1; x <= x2; x++) {
+            image.set(y, x, color);
+            error += derror2;
+            if (error > dx) {
+                y += y_step;
+                error -= dx2;
+            }
+        }
+    } else {
+        for (int x = x1; x <= x2; x++) {
+            image.set(x, y, color);
+            error += derror2;
+            if (error > dx) {
+                y += y_step;
+                error -= dx2;
+            }
+        }
     }
 }
 
