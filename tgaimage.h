@@ -3,8 +3,6 @@
 
 #include <fstream>
 #include <cstdint>
-#include <cstring>
-#include <string>
 
 namespace TGA {
 
