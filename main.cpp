@@ -1,30 +1,41 @@
-#include <cmath>
-
+#include <iostream>
 #include "tgaimage.h"
-
-using namespace TGA;
+#include "objhandler.h"
+#include "renderer.h"
 
 // BGRA
-constexpr TGAColor white  = {255, 255, 255, 255};
-constexpr TGAColor green  = {  0, 255,   0, 255};
-constexpr TGAColor red    = {  0,   0, 255, 255};
-constexpr TGAColor blue   = {255, 128,  64, 255};
-constexpr TGAColor yellow = {  0, 200, 255, 255};
+constexpr TGA::TGAColor white  = {255, 255, 255};
+constexpr TGA::TGAColor green  = {0, 255, 0};
+constexpr TGA::TGAColor red    = {255, 0, 0};
+constexpr TGA::TGAColor blue   = {64, 128, 255};
+constexpr TGA::TGAColor yellow = {255, 200, 0};
 
 
 int main(int argc, char** argv) {
-    constexpr int width  = 1028;
-    constexpr int height = 1028;
-    TGAImage framebuffer(width, height, TGAImage::RGB);
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <filename.obj>" << std::endl;
+        return 1;
+    }
 
-    int ax =  7, ay =  3;
-    int bx = 12, by = 37;
-    int cx = 62, cy = 53;
+    constexpr int width  = 512;
+    constexpr int height = 512;
 
-    std::string filename = "../obj/diablo3.obj";
-    framebuffer.load_obj(framebuffer, filename, red);
+    Obj::ObjHandler handler;
+    if (!handler.load(argv[1])) {
+        std::cerr << "Failed to load model: " << argv[1] << std::endl;
+        return 1;
+    }
 
-    framebuffer.write_tga_file("../framebuffer.tga");
+    TGA::TGAImage framebuffer(width, height, TGA::TGAImage::TGAPixelFormat::RGB);
+
+    TGA::Renderer::draw_obj(framebuffer, handler, red);
+
+    if (framebuffer.write_tga_file("framebuffer.tga")) {
+        std::cout << "Framebuffer saved to framebuffer.tga" << std::endl;
+    } else {
+        std::cerr << "Failed to write framebuffer." << std::endl;
+        return 1;
+    }
 
     return 0;
 }

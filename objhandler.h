@@ -4,25 +4,14 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
-#include <iostream>
+#include <string>
 
 namespace Obj {
 
-    enum class ObjTag { V, VT, VN, F, BREAK, UNKNOWN };
-    ObjTag parse_tag(const std::string& tag) {
-        if (tag == "f")  return ObjTag::F;
-        if (tag == "v")  return ObjTag::V;
-        if (tag == "vt") return ObjTag::VT;
-        if (tag == "vn") return ObjTag::VN;
-        if (tag == "#") return ObjTag::BREAK;
-        return ObjTag::UNKNOWN;
-    }
-
     struct Point {
-        float x, y, z;
-        constexpr Point() : x(0), y(0), z(0) {};
-        constexpr Point(float x, float y, float z) :
-            x(x), y(y), z(z) {};
+        float x = 0.0f, y = 0.0f, z = 0.0f;
+        Point() = default;
+        Point(float x, float y, float z) : x(x), y(y), z(z) {};
     };
 
     struct obj_index {
@@ -30,96 +19,104 @@ namespace Obj {
     };
 
     struct Face {
-        obj_index vertices[3];
+        std::vector<obj_index> vertices;
     };
 
     class ObjHandler {
     public:
-        std::vector<Point> vertices;
-        std::vector<Point> textures;
-        std::vector<Point> normals;
-        std::vector<Face> faces;
+        ObjHandler() = default;
 
-        ObjHandler(std::string& filename) {
-            file = std::ifstream(filename);
-
+        bool load(const std::string& filename) {
+            std::ifstream file(filename);
             if (!file.is_open()) {
-                std::cout << "[OBJ] Failed to open file: " << filename << std::endl;
-                return;
+                return false;
             }
 
             std::string line;
             while (std::getline(file, line)) {
-                std::cout << "[OBJ] Processing line: " << line << std::endl;
                 std::stringstream ss(line);
                 std::string token;
                 ss >> token;
-                ObjTag tag = parse_tag(token); 
+                ObjTag tag = parse_tag(token);
 
                 if (tag == ObjTag::BREAK || tag == ObjTag::UNKNOWN) continue;
 
                 handle_line(ss, tag);
             }
 
-            std::cout << "[OBJ] Loaded " << vertices.size() << " vertices, " << textures.size() << " textures, " << normals.size() << " normals, " << faces.size() << " faces." << std::endl;
+            return true;
         }
 
+        const std::vector<Point>& get_vertices() const { return vertices_; }
+        const std::vector<Point>& get_textures() const { return textures_; }
+        const std::vector<Point>& get_normals() const { return normals_; }
+        const std::vector<Face>& get_faces() const { return faces_; }
+
     private:
-        std::ifstream file;
+        enum class ObjTag { V, VT, VN, F, BREAK, UNKNOWN };
+
+        static ObjTag parse_tag(const std::string& tag) {
+            if (tag == "f")  return ObjTag::F;
+            if (tag == "v")  return ObjTag::V;
+            if (tag == "vt") return ObjTag::VT;
+            if (tag == "vn") return ObjTag::VN;
+            if (tag == "#") return ObjTag::BREAK;
+            return ObjTag::UNKNOWN;
+        }
 
         void handle_line(std::stringstream& ss, const ObjTag tag) {
-            if (tag == ObjTag::F) handle_face(ss);
-            else handle_vertex(ss, tag);
+            if (tag == ObjTag::F) {
+                handle_face(ss);
+            } else {
+                handle_vertex(ss, tag);
+            }
         }
 
         void handle_face(std::stringstream& ss) {
             Face face;
             std::string vertex_group;
 
-            for (int i = 0; i < 3; i++) {
-                ss >> vertex_group;
+            while (ss >> vertex_group) {
                 std::stringstream gs(vertex_group);
-                std::string idx;
+                std::string idx_str;
+                obj_index idx;
 
-                std::getline(gs, idx, '/');
-                if (!idx.empty()) face.vertices[i].v = stoi(idx);
-                std::getline(gs, idx, '/');
-                if (!idx.empty()) face.vertices[i].vt = stoi(idx);
-                std::getline(gs, idx, '/');
-                if (!idx.empty()) face.vertices[i].vn = stoi(idx);
+                // Vertex index
+                std::getline(gs, idx_str, '/');
+                if (!idx_str.empty()) idx.v = std::stoi(idx_str);
+
+                // Texture index
+                if (gs.peek() != '/') { // check if there is a texture coord
+                    std::getline(gs, idx_str, '/');
+                    if (!idx_str.empty()) idx.vt = std::stoi(idx_str);
+                } else {
+                    gs.ignore();
+                }
+
+                // Normal index
+                std::getline(gs, idx_str);
+                if (!idx_str.empty()) idx.vn = std::stoi(idx_str);
+
+                face.vertices.push_back(idx);
             }
-            faces.push_back(face);
-
-           
-            std::cout << "[OBJ] Added face: " << face.vertices[0].v << "/" << face.vertices[0].vt << "/" << face.vertices[0].vn << " "
-                << face.vertices[1].v << "/" << face.vertices[1].vt << "/" << face.vertices[1].vn << " "
-                << face.vertices[2].v << "/" << face.vertices[2].vt << "/" << face.vertices[2].vn << std::endl;
+            faces_.push_back(face);
         }
 
         void handle_vertex(std::stringstream& ss, const ObjTag tag) {
             float x, y, z;
             ss >> x >> y >> z;
-
-            std::string type;
             switch (tag) {
-                case ObjTag::V:
-                    vertices.push_back(Point(x, y, z));
-                    type = "vertex";
-                    break;
-                case ObjTag::VT:
-                    textures.push_back(Point(x, y, z));
-                    type = "texture";
-                    break;
-                case ObjTag::VN:
-                    normals.push_back(Point(x, y, z));
-                    type = "normal";
-                    break;
-                default:
-                    type = "unknown";
-                    break;
+                case ObjTag::V:  vertices_.emplace_back(x, y, z); break;
+                case ObjTag::VT: textures_.emplace_back(x, y, z); break;
+                case ObjTag::VN: normals_.emplace_back(x, y, z);  break;
+                default: break;
             }
-            std::cout << "[OBJ] Added " << type << ": " << x << " " << y << " " << z << std::endl;
         }
+
+        std::vector<Point> vertices_;
+        std::vector<Point> textures_;
+        std::vector<Point> normals_;
+        std::vector<Face> faces_;
     };
 };
 

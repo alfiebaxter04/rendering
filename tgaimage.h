@@ -3,16 +3,15 @@
 
 #include <fstream>
 #include <cstdint>
-#include <iostream>
-
-#include "objhandler.h"
+#include <vector>
+#include <algorithm>
 
 namespace TGA {
 
     struct TGAColor {
-        int b = 0, g = 0, r = 0, a = 255;
-        constexpr TGAColor() : b(0), g(0), r(0), a(255) {};
-        constexpr TGAColor(int b, int g, int r, int a)
+        unsigned char b = 0, g = 0, r = 0, a = 255;
+        constexpr TGAColor() = default;
+        constexpr TGAColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255)
             : b(b), g(g), r(r), a(a) {};
     };
 
@@ -35,134 +34,51 @@ namespace TGA {
 
     class TGAImage {
     public:
-        enum TGAPixelFormat {
+        enum class TGAPixelFormat {
             GRAYSCALE = 1,
             RGB = 3,
             RGBA = 4
         };
 
         TGAImage(int width, int height, TGAPixelFormat format)
-            : width(width), height(height), format(format)
+            : width_(width), height_(height), format_(format),
+              bytes_per_pixel_(static_cast<int>(format)),
+              image_data_(static_cast<std::size_t>(width) * height * bytes_per_pixel_, 0)
         {
-            bytes_per_pixel = static_cast<int>(format);
-            total_size = width * height * bytes_per_pixel;
-            data = new uint8_t[total_size]();
-
-            header.width = width;
-            header.height = height;
-            header.pixel_depth = bytes_per_pixel * 8;
-            header.image_type = (format == TGAPixelFormat::GRAYSCALE) ? 3 : 2;
-            header.image_descriptor = (format == TGAPixelFormat::RGBA) ? 8 : 0;
+            header_.width = width;
+            header_.height = height;
+            header_.pixel_depth = bytes_per_pixel_ * 8;
+            header_.image_type = (format_ == TGAPixelFormat::GRAYSCALE) ? 3 : 2;
+            header_.image_descriptor = (format_ == TGAPixelFormat::RGBA) ? 8 : 0;
         }
 
-        ~TGAImage() {
-            delete[] data;
+        void set(int x, int y, const TGAColor& color) {
+            if (x < 0 || y < 0 || x >= width_ || y >= height_) return;
+
+            int index = (x + y * width_) * bytes_per_pixel_;
+            std::copy_n(&color.b, bytes_per_pixel_, image_data_.begin() + index);
         }
 
-        inline void set(int x, int y, TGAColor color) {
-            if (x < 0 || y < 0 || x >= width || y >= height) return;
-
-            int index = (x + y * width) * bytes_per_pixel;
-
-            switch (format) {
-                case TGAPixelFormat::GRAYSCALE:
-                    data[index] = static_cast<uint8_t>((color.r + color.g + color.b) / 3);
-                    break;
-                case TGAPixelFormat::RGB:
-                    data[index]   = color.b;
-                    data[index+1] = color.g;
-                    data[index+2] = color.r;
-                    break;
-                case TGAPixelFormat::RGBA:
-                    data[index]   = color.b;
-                    data[index+1] = color.g;
-                    data[index+2] = color.r;
-                    data[index+3] = color.a;
-                    break;
-            }
-        }
-
-        void line(int x1, int y1, int x2, int y2, TGAImage& image, TGAColor color) {
-            bool steep = std::abs(y2 - y1) > std::abs(x2 - x1);
-            if (steep) { std::swap(x1, y1); std::swap(x2, y2); }
-            if (x1 > x2) { std::swap(x1, x2); std::swap(y1, y2); }
-
-            int dx = x2 - x1;
-            int dy = std::abs(y2 - y1);
-            int error = 0;
-            int derror2 = dy * 2;
-            int dx2 = dx * 2;
-            int y = y1;
-            int y_step = (y2 > y1 ? 1 : -1);
-
-            if (steep) {
-                for (int x = x1; x <= x2; x++) {
-                    image.set(y, x, color);
-                    error += derror2;
-                    if (error > dx) {
-                        y += y_step;
-                        error -= dx2;
-                    }
-                }
-            } else {
-                for (int x = x1; x <= x2; x++) {
-                    image.set(x, y, color);
-                    error += derror2;
-                    if (error > dx) {
-                        y += y_step;
-                        error -= dx2;
-                    }
-                }
-            }
-        }
-
-        void load_obj(TGA::TGAImage& image, std::string& filename, TGA::TGAColor color) {
-            Obj::ObjHandler handler(filename);
-            draw_obj(image, handler, color);
-        }
-
-        void draw_obj(TGA::TGAImage& image, Obj::ObjHandler& handler, TGA::TGAColor color) {
-            std::cout << "[DRAW] Starting to draw " << handler.faces.size() << " faces." << std::endl;
-            for (Obj::Face face : handler.faces) {
-                int i1 = face.vertices[0].v - 1;
-                int i2 = face.vertices[1].v - 1;
-                int i3 = face.vertices[2].v - 1;
-
-                std::cout << "[DRAW] Face indices: " << i1 << ", " << i2 << ", " << i3 << std::endl;
-
-                float x1 = (handler.vertices[i1].x + 1) * image.width / 2;
-                float y1 = (handler.vertices[i1].y + 1) * image.height / 2;
-                float x2 = (handler.vertices[i2].x + 1) * image.width / 2;
-                float y2 = (handler.vertices[i2].y + 1) * image.height / 2;
-                float x3 = (handler.vertices[i3].x + 1) * image.width / 2;
-                float y3 = (handler.vertices[i3].y + 1) * image.height / 2;
-
-                std::cout << "[DRAW] Drawing lines for face: (" << x1 << "," << y1 << ") (" << x2 << "," << y2 << ") (" << x3 << "," << y3 << ")" << std::endl;
-
-                line(x1, y1, x2, y2, image, color);
-                line(x1, y1, x3, y3, image, color);
-                line(x3, y3, x2, y2, image, color);
-            }
-            std::cout << "[DRAW] Finished drawing faces." << std::endl;
-        }
-
-        void write_tga_file(const std::string& filename) {
+        bool write_tga_file(const std::string& filename) {
             std::ofstream out(filename, std::ios::binary);
-            if (!out) return;
+            if (!out) return false;
 
-            out.write(reinterpret_cast<char*>(&header), sizeof(TGAHeader));
-            out.write(reinterpret_cast<char*>(data), total_size);
+            out.write(reinterpret_cast<const char*>(&header_), sizeof(TGAHeader));
+            out.write(reinterpret_cast<const char*>(image_data_.data()), image_data_.size());
 
-            out.close();
+            return true;
         }
+
+        int get_width() const { return width_; }
+        int get_height() const { return height_; }
 
     private:
-        int width, height;
-        TGAHeader header;
-        uint8_t* data;
-        TGAPixelFormat format;
-        int bytes_per_pixel;
-        int total_size;
+        int width_;
+        int height_;
+        TGAHeader header_{};
+        TGAPixelFormat format_;
+        int bytes_per_pixel_;
+        std::vector<uint8_t> image_data_;
     };
 }
 
