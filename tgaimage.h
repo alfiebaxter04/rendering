@@ -3,6 +3,9 @@
 
 #include <fstream>
 #include <cstdint>
+#include <iostream>
+
+#include "objhandler.h"
 
 namespace TGA {
 
@@ -111,6 +114,36 @@ namespace TGA {
                     }
                 }
             }
+        }
+
+        void load_obj(TGA::TGAImage& image, std::string& filename, TGA::TGAColor color) {
+            Obj::ObjHandler handler(filename);
+            draw_obj(image, handler, color);
+        }
+
+        void draw_obj(TGA::TGAImage& image, Obj::ObjHandler& handler, TGA::TGAColor color) {
+            std::cout << "[DRAW] Starting to draw " << handler.faces.size() << " faces." << std::endl;
+            for (Obj::Face face : handler.faces) {
+                int i1 = face.vertices[0].v - 1;
+                int i2 = face.vertices[1].v - 1;
+                int i3 = face.vertices[2].v - 1;
+
+                std::cout << "[DRAW] Face indices: " << i1 << ", " << i2 << ", " << i3 << std::endl;
+
+                float x1 = (handler.vertices[i1].x + 1) * image.width / 2;
+                float y1 = (handler.vertices[i1].y + 1) * image.height / 2;
+                float x2 = (handler.vertices[i2].x + 1) * image.width / 2;
+                float y2 = (handler.vertices[i2].y + 1) * image.height / 2;
+                float x3 = (handler.vertices[i3].x + 1) * image.width / 2;
+                float y3 = (handler.vertices[i3].y + 1) * image.height / 2;
+
+                std::cout << "[DRAW] Drawing lines for face: (" << x1 << "," << y1 << ") (" << x2 << "," << y2 << ") (" << x3 << "," << y3 << ")" << std::endl;
+
+                line(x1, y1, x2, y2, image, color);
+                line(x1, y1, x3, y3, image, color);
+                line(x3, y3, x2, y2, image, color);
+            }
+            std::cout << "[DRAW] Finished drawing faces." << std::endl;
         }
 
         void write_tga_file(const std::string& filename) {

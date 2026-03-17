@@ -13,17 +13,16 @@ constexpr TGAColor yellow = {  0, 200, 255, 255};
 
 
 int main(int argc, char** argv) {
-    constexpr int width  = 64;
-    constexpr int height = 64;
+    constexpr int width  = 1028;
+    constexpr int height = 1028;
     TGAImage framebuffer(width, height, TGAImage::RGB);
 
     int ax =  7, ay =  3;
     int bx = 12, by = 37;
     int cx = 62, cy = 53;
 
-    framebuffer.line(ax, ay, bx, by, framebuffer, red);
-    framebuffer.line(bx, by, cx, cy, framebuffer, green);
-    framebuffer.line(cx, cy, ax, ay, framebuffer, blue);
+    std::string filename = "../obj/diablo3.obj";
+    framebuffer.load_obj(framebuffer, filename, red);
 
     framebuffer.write_tga_file("../framebuffer.tga");
 
