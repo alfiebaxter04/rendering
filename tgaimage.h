@@ -9,9 +9,9 @@
 namespace TGA {
 
     struct TGAColor {
-        unsigned char b = 0, g = 0, r = 0, a = 255;
+        int b = 0, g = 0, r = 0, a = 255;
         constexpr TGAColor() = default;
-        constexpr TGAColor(unsigned char r, unsigned char g, unsigned char b, unsigned char a = 255)
+        constexpr TGAColor(int r, int g, int b, int a = 255)
             : b(b), g(g), r(r), a(a) {};
     };
 
