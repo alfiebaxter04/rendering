@@ -13,6 +13,10 @@ namespace TGA {
         constexpr TGAColor() = default;
         constexpr TGAColor(int r, int g, int b, int a = 255)
             : b(b), g(g), r(r), a(a) {};
+
+        TGAColor randomColor() {
+            std::srand(std::time(){})
+        }
     };
 
     #pragma pack(push, 1)

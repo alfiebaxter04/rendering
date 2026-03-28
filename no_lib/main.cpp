@@ -17,8 +17,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    constexpr int width  = 512;
-    constexpr int height = 512;
+    constexpr int width  = 5000;
+    constexpr int height = 5000;
 
     Obj::ObjHandler handler;
     if (!handler.load(argv[1])) {
