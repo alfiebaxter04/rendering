@@ -1,15 +1,13 @@
 #include <iostream>
-#include "tgaimage.h"
-#include "objhandler.h"
+#include "tga_image.h"
+#include "obj_handler.h"
 #include "renderer.h"
 
-// BGRA
-constexpr TGA::TGAColor white  = {255, 255, 255};
-constexpr TGA::TGAColor green  = {0, 255, 0};
-constexpr TGA::TGAColor red    = {255, 0, 0};
-constexpr TGA::TGAColor blue   = {64, 128, 255};
-constexpr TGA::TGAColor yellow = {255, 200, 0};
-
+constexpr TGA::TGAColor white  {255, 255, 255};
+constexpr TGA::TGAColor green  {0, 255, 0};
+constexpr TGA::TGAColor red    {255, 0, 0};
+constexpr TGA::TGAColor blue   {64, 128, 255};
+constexpr TGA::TGAColor yellow {255, 200, 0};
 
 int main(int argc, char** argv) {
     if (argc != 2) {
@@ -26,11 +24,11 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    TGA::TGAImage framebuffer(width, height, TGA::TGAImage::TGAPixelFormat::RGB);
+    TGA::TGAImage framebuffer(width, height, TGA::TGAImage::PixelFormat::RGB);
 
     TGA::Renderer::draw_obj(framebuffer, handler, red);
 
-    if (framebuffer.write_tga_file("framebuffer.tga")) {
+    if (framebuffer.write_file("framebuffer.tga")) {
         std::cout << "Framebuffer saved to framebuffer.tga" << std::endl;
     } else {
         std::cerr << "Failed to write framebuffer." << std::endl;

@@ -7,7 +7,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set(SOURCES
     main.cpp
-    tgaimage.h
+    tga_image.h
+    tga_image.cc
+    renderer.h
+    renderer.cc
+    obj_handler.h
+    obj_handler.cc
 )
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native")
